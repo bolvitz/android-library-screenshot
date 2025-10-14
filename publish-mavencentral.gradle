@@ -1,0 +1,291 @@
+// Maven Central Publishing Configuration
+// This script handles publishing to Sonatype OSSRH / Maven Central
+
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
+
+// Load properties from gradle.properties
+def getPropertyOrDefault(String propertyName, String defaultValue = "") {
+    return project.hasProperty(propertyName) ? project.property(propertyName) : defaultValue
+}
+
+// Library metadata
+ext {
+    GROUP_ID = getPropertyOrDefault("GROUP", "io.github.yourusername")
+    ARTIFACT_ID = getPropertyOrDefault("POM_ARTIFACT_ID", "screenshot-android")
+    VERSION_NAME = getPropertyOrDefault("VERSION_NAME", "1.0.0")
+
+    POM_NAME = getPropertyOrDefault("POM_NAME", "Android Screenshot Library")
+    POM_DESCRIPTION = getPropertyOrDefault("POM_DESCRIPTION",
+        "A lightweight, robust Android library for capturing screenshots of any view")
+    POM_URL = getPropertyOrDefault("POM_URL", "https://github.com/yourusername/android-library-screenshot")
+
+    POM_SCM_URL = getPropertyOrDefault("POM_SCM_URL",
+        "https://github.com/yourusername/android-library-screenshot")
+    POM_SCM_CONNECTION = getPropertyOrDefault("POM_SCM_CONNECTION",
+        "scm:git:git://github.com/yourusername/android-library-screenshot.git")
+    POM_SCM_DEV_CONNECTION = getPropertyOrDefault("POM_SCM_DEV_CONNECTION",
+        "scm:git:ssh://git@github.com/yourusername/android-library-screenshot.git")
+
+    POM_LICENCE_NAME = getPropertyOrDefault("POM_LICENCE_NAME",
+        "The Apache Software License, Version 2.0")
+    POM_LICENCE_URL = getPropertyOrDefault("POM_LICENCE_URL",
+        "https://www.apache.org/licenses/LICENSE-2.0.txt")
+    POM_LICENCE_DIST = getPropertyOrDefault("POM_LICENCE_DIST", "repo")
+
+    POM_DEVELOPER_ID = getPropertyOrDefault("POM_DEVELOPER_ID", "yourusername")
+    POM_DEVELOPER_NAME = getPropertyOrDefault("POM_DEVELOPER_NAME", "Your Name")
+    POM_DEVELOPER_EMAIL = getPropertyOrDefault("POM_DEVELOPER_EMAIL", "your.email@example.com")
+}
+
+// Task to generate Javadoc JAR
+task androidJavadocs(type: Javadoc) {
+    source = android.sourceSets.main.java.srcDirs
+
+    // Configure classpath with null checks
+    def bootClasspath = android.getBootClasspath()
+    if (bootClasspath != null && !bootClasspath.isEmpty()) {
+        classpath += project.files(bootClasspath.join(File.pathSeparator))
+    }
+
+    // Add project dependencies to classpath
+    classpath += files(android.libraryVariants.collect { variant ->
+        variant.javaCompileProvider.get().classpath.files
+    })
+
+    // Exclude generated files
+    exclude '**/R.html', '**/R.*.html', '**/index.html'
+
+    options {
+        encoding = 'UTF-8'
+        charSet = 'UTF-8'
+        links("https://docs.oracle.com/javase/8/docs/api/")
+        links("https://developer.android.com/reference")
+    }
+
+    // Suppress warnings and errors
+    failOnError = false
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
+    archiveClassifier.set('javadoc')
+    from androidJavadocs.destinationDir
+}
+
+task androidSourcesJar(type: Jar) {
+    archiveClassifier.set('sources')
+    from android.sourceSets.main.java.srcDirs
+}
+
+// Configure artifacts
+artifacts {
+    archives androidSourcesJar
+    archives androidJavadocsJar
+}
+
+// Publishing configuration
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                // Library coordinates
+                groupId = GROUP_ID
+                artifactId = ARTIFACT_ID
+                version = VERSION_NAME
+
+                // Bundle AAR from component
+                from components.release
+
+                // The component doesn't include javadocs, so add them manually
+                artifact(androidJavadocsJar)
+
+                // POM configuration
+                pom {
+                    name = POM_NAME
+                    description = POM_DESCRIPTION
+                    url = POM_URL
+
+                    licenses {
+                        license {
+                            name = POM_LICENCE_NAME
+                            url = POM_LICENCE_URL
+                            distribution = POM_LICENCE_DIST
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id = POM_DEVELOPER_ID
+                            name = POM_DEVELOPER_NAME
+                            email = POM_DEVELOPER_EMAIL
+                        }
+                    }
+
+                    scm {
+                        connection = POM_SCM_CONNECTION
+                        developerConnection = POM_SCM_DEV_CONNECTION
+                        url = POM_SCM_URL
+                    }
+
+                    // Dependency management
+                    withXml {
+                        def root = asNode()
+
+                        // Find existing dependencies node or create one
+                        def dependenciesNode = root.dependencies ? root.dependencies[0] : root.appendNode('dependencies')
+
+                        // Add compile-only dependencies (like Media3) - these aren't auto-added
+                        configurations.compileOnly.allDependencies.each {
+                            if (it.group != null && it.name != null) {
+                                def dependencyNode = dependenciesNode.appendNode('dependency')
+                                dependencyNode.appendNode('groupId', it.group)
+                                dependencyNode.appendNode('artifactId', it.name)
+                                dependencyNode.appendNode('version', it.version)
+                                dependencyNode.appendNode('scope', 'provided')
+                                dependencyNode.appendNode('optional', 'true')
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        repositories {
+            maven {
+                name = "sonatype"
+
+                // Use OSSRH for staging (works with new Maven Central Portal)
+                def releasesRepoUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+                def snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+
+                url = VERSION_NAME.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+
+                credentials {
+                    // Use Maven Central Portal credentials (they work with OSSRH too)
+                    username = getPropertyOrDefault("centralUsername",
+                        getPropertyOrDefault("ossrhUsername", ""))
+                    password = getPropertyOrDefault("centralPassword",
+                        getPropertyOrDefault("ossrhPassword", ""))
+                }
+            }
+        }
+    }
+
+    // Ensure task dependencies are set after publishing is configured
+    tasks.matching { it.name.startsWith('generateMetadataFileFor') }.configureEach {
+        dependsOn androidSourcesJar
+        dependsOn androidJavadocsJar
+    }
+
+    tasks.matching { it.name.startsWith('generatePomFileFor') }.configureEach {
+        dependsOn androidSourcesJar
+        dependsOn androidJavadocsJar
+    }
+}
+
+// Signing configuration
+signing {
+    // Only sign if credentials are available
+    required {
+        gradle.taskGraph.hasTask("publish") &&
+        getPropertyOrDefault("signing.keyId", "") != ""
+    }
+
+    sign publishing.publications
+}
+
+// Helper tasks
+task printPublishInfo {
+    doLast {
+        println ""
+        println "========================================="
+        println "Publication Information"
+        println "========================================="
+        println "Group ID:    ${GROUP_ID}"
+        println "Artifact ID: ${ARTIFACT_ID}"
+        println "Version:     ${VERSION_NAME}"
+        println "========================================="
+        println ""
+        println "Maven dependency:"
+        println "implementation '${GROUP_ID}:${ARTIFACT_ID}:${VERSION_NAME}'"
+        println ""
+    }
+}
+
+// Task to verify configuration before publishing
+task verifyPublishConfig {
+    doLast {
+        def errors = []
+
+        // Check required properties
+        if (GROUP_ID == "io.github.yourusername") {
+            errors.add("GROUP_ID must be updated in gradle.properties")
+        }
+
+        // Check for credentials (new portal or legacy OSSRH)
+        def hasNewCredentials = getPropertyOrDefault("centralUsername", "") != "" ||
+                               getPropertyOrDefault("centralToken", "") != ""
+        def hasLegacyCredentials = getPropertyOrDefault("ossrhUsername", "") != ""
+
+        if (!hasNewCredentials && !hasLegacyCredentials) {
+            errors.add("No Maven Central credentials found. Set either:")
+            errors.add("  - centralUsername/centralPassword (NEW Portal), OR")
+            errors.add("  - centralToken (NEW Portal with token), OR")
+            errors.add("  - ossrhUsername/ossrhPassword (Legacy OSSRH)")
+        }
+
+        if (hasNewCredentials) {
+            println "ℹ️  Using NEW Maven Central Portal credentials"
+        } else if (hasLegacyCredentials) {
+            println "⚠️  Using legacy OSSRH credentials (consider migrating to central.sonatype.com)"
+        }
+
+        if (getPropertyOrDefault("signing.keyId", "") == "") {
+            errors.add("signing.keyId not set in ~/.gradle/gradle.properties")
+        }
+
+        if (errors.isEmpty()) {
+            println "✅ Publishing configuration looks good!"
+            println ""
+            println "========================================="
+            println "Publication Information"
+            println "========================================="
+            println "Group ID:    ${GROUP_ID}"
+            println "Artifact ID: ${ARTIFACT_ID}"
+            println "Version:     ${VERSION_NAME}"
+            println "========================================="
+            println ""
+            println "Maven dependency:"
+            println "implementation '${GROUP_ID}:${ARTIFACT_ID}:${VERSION_NAME}'"
+            println ""
+        } else {
+            println "❌ Publishing configuration has errors:"
+            errors.each { println "   - ${it}" }
+            println ""
+            println "See PUBLISHING_GUIDE.md for setup instructions"
+            println "TIP: Use the NEW Maven Central Portal at https://central.sonatype.com/"
+            throw new GradleException("Publishing configuration incomplete")
+        }
+    }
+}
+
+// Helper task for publishing to Maven Central via OSSRH
+task publishToMavenCentral {
+    dependsOn 'publishReleasePublicationToSonatypeRepository'
+    doLast {
+        println ""
+        println "✅ Published to OSSRH Staging!"
+        println "ℹ️  Next steps:"
+        println "   1. Go to https://s01.oss.sonatype.org/"
+        println "   2. Log in with your Maven Central Portal credentials"
+        println "   3. Click 'Staging Repositories' on the left"
+        println "   4. Find your repository (iogithubbolvitz-XXXX)"
+        println "   5. Click 'Close' button, wait for validation (~2 min)"
+        println "   6. Click 'Release' button to publish to Maven Central"
+        println ""
+        println "   After release, your library will be available in 15-30 minutes at:"
+        println "   https://repo1.maven.org/maven2/${GROUP_ID.replace('.', '/')}/${ARTIFACT_ID}/${VERSION_NAME}/"
+        println ""
+    }
+}
