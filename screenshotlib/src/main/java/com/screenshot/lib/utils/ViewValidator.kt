@@ -8,6 +8,21 @@ import android.view.View
 object ViewValidator {
 
     /**
+     * Check if a view is valid for capture.
+     *
+     * This performs basic validation checks:
+     * - View is not null
+     * - View has valid dimensions (width > 0 and height > 0)
+     *
+     * @param view The view to check
+     * @return true if view is valid
+     */
+    fun isViewValid(view: View?): Boolean {
+        if (view == null) return false
+        return view.width > 0 && view.height > 0
+    }
+
+    /**
      * Check if a view is truly visible and ready for capture.
      *
      * This performs comprehensive visibility checks:
