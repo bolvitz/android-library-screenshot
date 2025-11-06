@@ -4,7 +4,9 @@ import android.app.Activity
 import android.graphics.Bitmap
 import android.view.TextureView
 import android.view.View
+import android.view.ViewGroup
 import android.webkit.WebView
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.VideoView
@@ -22,6 +24,7 @@ import org.robolectric.RobolectricTestRunner
 class ViewCaptureHandlerTest {
 
     private lateinit var activity: Activity
+    private lateinit var rootView: FrameLayout
 
     @Before
     fun setup() {
@@ -30,6 +33,30 @@ class ViewCaptureHandlerTest {
             .start()
             .resume()
             .get()
+
+        // Create a root container for our test views
+        rootView = FrameLayout(activity).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        }
+        activity.setContentView(rootView)
+    }
+
+    /**
+     * Helper method to attach a view to the hierarchy and make it visible
+     */
+    private fun attachView(view: View, width: Int = 100, height: Int = 100) {
+        view.layoutParams = ViewGroup.LayoutParams(width, height)
+        rootView.addView(view)
+
+        // Trigger layout
+        rootView.measure(
+            View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY)
+        )
+        rootView.layout(0, 0, 1000, 1000)
     }
 
     @Test
@@ -44,9 +71,9 @@ class ViewCaptureHandlerTest {
     fun `StandardViewCaptureHandler captures bitmap`() {
         val handler = StandardViewCaptureHandler()
         val view = TextView(activity).apply {
-            layout(0, 0, 100, 100)
             text = "Test"
         }
+        attachView(view)
 
         val bitmap = handler.captureBitmap(view, includeBackground = true)
 
@@ -72,9 +99,8 @@ class ViewCaptureHandlerTest {
 
     @Test
     fun `factory returns correct handler for TextView`() {
-        val view = TextView(activity).apply {
-            layout(0, 0, 100, 100)
-        }
+        val view = TextView(activity)
+        attachView(view)
 
         val handler = ViewCaptureHandlerFactory.getHandler(view)
 
@@ -83,9 +109,8 @@ class ViewCaptureHandlerTest {
 
     @Test
     fun `factory returns correct handler for ImageView`() {
-        val view = ImageView(activity).apply {
-            layout(0, 0, 100, 100)
-        }
+        val view = ImageView(activity)
+        attachView(view)
 
         val handler = ViewCaptureHandlerFactory.getHandler(view)
 
@@ -94,9 +119,8 @@ class ViewCaptureHandlerTest {
 
     @Test
     fun `factory returns correct handler for WebView`() {
-        val view = WebView(activity).apply {
-            layout(0, 0, 100, 100)
-        }
+        val view = WebView(activity)
+        attachView(view)
 
         val handler = ViewCaptureHandlerFactory.getHandler(view)
 
@@ -105,9 +129,8 @@ class ViewCaptureHandlerTest {
 
     @Test
     fun `factory returns correct handler for TextureView`() {
-        val view = TextureView(activity).apply {
-            layout(0, 0, 100, 100)
-        }
+        val view = TextureView(activity)
+        attachView(view)
 
         val handler = ViewCaptureHandlerFactory.getHandler(view)
 
@@ -116,9 +139,8 @@ class ViewCaptureHandlerTest {
 
     @Test
     fun `factory returns correct handler for VideoView`() {
-        val view = VideoView(activity).apply {
-            layout(0, 0, 100, 100)
-        }
+        val view = VideoView(activity)
+        attachView(view)
 
         val handler = ViewCaptureHandlerFactory.getHandler(view)
 
@@ -149,9 +171,8 @@ class ViewCaptureHandlerTest {
 
     @Test
     fun `getCompatibleHandlers returns all compatible handlers`() {
-        val view = ImageView(activity).apply {
-            layout(0, 0, 100, 100)
-        }
+        val view = ImageView(activity)
+        attachView(view)
 
         val handlers = ViewCaptureHandlerFactory.getCompatibleHandlers(view)
 
@@ -204,9 +225,8 @@ class ViewCaptureHandlerTest {
     @Test
     fun `capture with and without background`() {
         val handler = StandardViewCaptureHandler()
-        val view = TextView(activity).apply {
-            layout(0, 0, 100, 100)
-        }
+        val view = TextView(activity)
+        attachView(view)
 
         val withBg = handler.captureBitmap(view, includeBackground = true)
         val withoutBg = handler.captureBitmap(view, includeBackground = false)
