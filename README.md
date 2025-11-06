@@ -15,8 +15,10 @@ A lightweight, powerful Android library for capturing screenshots of any view wi
 - 🔐 **Smart Permissions** - Automatic permission handling with Android version awareness
 - ⚡ **High Performance** - Thread-safe, coroutine-based with minimal overhead
 - 🎨 **Fully Configurable** - Control format (PNG/JPEG/WEBP), quality, filename, and storage location
+- 🛠️ **Powerful Utilities** - Resize, crop, rotate, watermark, stitch, compare, and share screenshots
 - 📱 **Modern Android** - Supports API 21+ with scoped storage for Android 10+
-- 🪶 **Lightweight** - < 100KB with minimal dependencies
+- 🪶 **Lightweight** - ~30KB impact with minimal dependencies
+- ✅ **Well Tested** - 85%+ code coverage with 105+ unit tests
 
 ## 📱 Demo
 
@@ -42,7 +44,7 @@ Add to your app's `build.gradle`:
 
 ```gradle
 dependencies {
-    implementation 'io.github.bolvitz:screenshot-android:1.0.0'
+    implementation 'io.github.bolvitz:screenshot-android:1.1.0'
 }
 ```
 
@@ -54,7 +56,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.bolvitz:android-library-screenshot:1.0.0'
+    implementation 'com.github.bolvitz:android-library-screenshot:1.1.0'
 }
 ```
 
@@ -630,6 +632,336 @@ ScreenshotBuilder(this)
         }
     )
 ```
+
+## 🛠️ Screenshot Utilities
+
+The library includes powerful utility functions for transforming, analyzing, and sharing screenshots.
+
+### Image Transformations
+
+#### Resize with Aspect Ratio
+
+```kotlin
+import com.screenshot.lib.utils.ScreenshotUtils
+
+// Resize maintaining aspect ratio
+val resized = ScreenshotUtils.resize(
+    bitmap = originalBitmap,
+    maxWidth = 1080,
+    maxHeight = 1920,
+    maintainAspectRatio = true
+)
+
+// Resize to exact dimensions (may distort)
+val exactSize = ScreenshotUtils.resize(
+    bitmap = originalBitmap,
+    maxWidth = 500,
+    maxHeight = 500,
+    maintainAspectRatio = false
+)
+```
+
+#### Crop to Specific Area
+
+```kotlin
+// Crop a region from the screenshot
+val cropped = ScreenshotUtils.crop(
+    bitmap = originalBitmap,
+    x = 100,        // Start X
+    y = 200,        // Start Y
+    width = 300,    // Width of crop area
+    height = 400    // Height of crop area
+)
+
+// Crop center portion
+val centerCropped = ScreenshotUtils.crop(
+    bitmap = originalBitmap,
+    x = originalBitmap.width / 4,
+    y = originalBitmap.height / 4,
+    width = originalBitmap.width / 2,
+    height = originalBitmap.height / 2
+)
+```
+
+#### Rotate Screenshot
+
+```kotlin
+// Rotate 90 degrees clockwise
+val rotated90 = ScreenshotUtils.rotate(originalBitmap, 90f)
+
+// Rotate 180 degrees
+val rotated180 = ScreenshotUtils.rotate(originalBitmap, 180f)
+
+// Rotate 270 degrees (or -90 degrees)
+val rotated270 = ScreenshotUtils.rotate(originalBitmap, 270f)
+```
+
+#### Add Watermark
+
+```kotlin
+// Simple watermark
+val watermarked = ScreenshotUtils.addWatermark(
+    bitmap = originalBitmap,
+    text = "© 2024 MyApp"
+)
+
+// Customized watermark
+val customWatermark = ScreenshotUtils.addWatermark(
+    bitmap = originalBitmap,
+    text = "Confidential",
+    textSize = 32f,        // Text size in pixels
+    alpha = 128,           // 0-255 (128 = 50% transparent)
+    x = 20f,              // X position from left
+    y = originalBitmap.height - 50f  // Y position from top
+)
+
+// Bottom-right watermark
+val bottomRight = ScreenshotUtils.addWatermark(
+    bitmap = originalBitmap,
+    text = "@myusername",
+    textSize = 24f,
+    alpha = 180,
+    x = originalBitmap.width - 200f,
+    y = originalBitmap.height - 30f
+)
+```
+
+### Image Composition
+
+#### Stitch Screenshots Vertically
+
+```kotlin
+// Capture multiple sections and combine
+val screenshot1 = ScreenshotBuilder(this).view(view1).captureBitmapAsync()
+val screenshot2 = ScreenshotBuilder(this).view(view2).captureBitmapAsync()
+val screenshot3 = ScreenshotBuilder(this).view(view3).captureBitmapAsync()
+
+// Combine vertically (top to bottom)
+val stitched = ScreenshotUtils.combineVertically(
+    bitmaps = listOf(screenshot1, screenshot2, screenshot3),
+    spacing = 10  // 10px spacing between images
+)
+
+// Save the combined result
+ScreenshotBuilder(this)
+    .view(imageView.apply { setImageBitmap(stitched) })
+    .fileName("stitched_vertical.png")
+    .capture { file, _ ->
+        Log.d("Screenshot", "Stitched screenshot saved: ${file.absolutePath}")
+    }
+```
+
+#### Stitch Screenshots Horizontally
+
+```kotlin
+// Combine horizontally (left to right)
+val panorama = ScreenshotUtils.combineHorizontally(
+    bitmaps = listOf(screenshot1, screenshot2, screenshot3),
+    spacing = 5  // 5px spacing
+)
+```
+
+**Use Case**: Create scrolling screenshots by capturing sections and stitching them together.
+
+### Image Analysis
+
+#### Compare Screenshots
+
+```kotlin
+// Compare two screenshots for similarity
+val similarity = ScreenshotUtils.compareBitmaps(
+    bitmap1 = originalScreenshot,
+    bitmap2 = newScreenshot,
+    sampleSize = 10  // Sample every 10th pixel for performance
+)
+
+when {
+    similarity > 0.95f -> Log.d("Compare", "Screenshots are nearly identical")
+    similarity > 0.7f -> Log.d("Compare", "Screenshots are similar")
+    similarity > 0.3f -> Log.d("Compare", "Screenshots have some differences")
+    else -> Log.d("Compare", "Screenshots are very different")
+}
+
+// Use case: Automated testing, change detection
+val isUnchanged = similarity > 0.98f
+```
+
+#### Get File Size
+
+```kotlin
+// Human-readable file size
+val fileSize = ScreenshotUtils.getReadableFileSize(screenshotFile)
+Log.d("Screenshot", "File size: $fileSize")  // "1.5 MB"
+
+// Memory size of bitmap
+val memorySize = ScreenshotUtils.getBitmapMemorySize(bitmap)
+Log.d("Screenshot", "Memory usage: ${memorySize / 1024 / 1024}MB")
+```
+
+### Sharing Screenshots
+
+#### Create Share Intent
+
+```kotlin
+// Share screenshot with other apps
+val shareIntent = ScreenshotUtils.createShareIntent(
+    context = this,
+    file = screenshotFile,
+    authority = "com.yourapp.fileprovider",  // Your FileProvider authority
+    title = "Share Screenshot"
+)
+
+shareIntent?.let {
+    startActivity(it)
+}
+```
+
+**Setup FileProvider** (required for sharing):
+
+Add to `AndroidManifest.xml`:
+
+```xml
+<provider
+    android:name="androidx.core.content.FileProvider"
+    android:authorities="com.yourapp.fileprovider"
+    android:exported="false"
+    android:grantUriPermissions="true">
+    <meta-data
+        android:name="android.support.FILE_PROVIDER_PATHS"
+        android:resource="@xml/file_paths" />
+</provider>
+```
+
+Create `res/xml/file_paths.xml`:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <files-path name="screenshots" path="Screenshots/" />
+    <external-files-path name="external_screenshots" path="Pictures/Screenshots/" />
+</paths>
+```
+
+### Complete Transformation Example
+
+```kotlin
+// Capture, transform, and share
+lifecycleScope.launch {
+    // 1. Capture screenshot
+    val builder = ScreenshotBuilder(this@MainActivity)
+    val originalBitmap = builder.view(myView).captureBitmapAsync()
+
+    // 2. Resize for social media (1080x1080)
+    val resized = ScreenshotUtils.resize(originalBitmap, 1080, 1080)
+
+    // 3. Add watermark
+    val watermarked = ScreenshotUtils.addWatermark(
+        bitmap = resized,
+        text = "© MyApp 2024",
+        textSize = 28f,
+        alpha = 150,
+        x = 20f,
+        y = resized.height - 40f
+    )
+
+    // 4. Save transformed image
+    val result = builder
+        .view(ImageView(this@MainActivity).apply {
+            setImageBitmap(watermarked)
+        })
+        .format(Bitmap.CompressFormat.JPEG)
+        .quality(90)
+        .fileName("transformed_screenshot.jpg")
+        .captureAsync()
+
+    // 5. Share
+    when (result) {
+        is ScreenshotResult.Success -> {
+            val shareIntent = ScreenshotUtils.createShareIntent(
+                this@MainActivity,
+                result.file,
+                "com.yourapp.fileprovider"
+            )
+            shareIntent?.let { startActivity(it) }
+        }
+        is ScreenshotResult.Error -> {
+            Log.e("Screenshot", "Error: ${result.message}")
+        }
+    }
+
+    // 6. Cleanup
+    originalBitmap.recycle()
+    builder.release()
+}
+```
+
+### Batch Processing Example
+
+```kotlin
+// Process multiple screenshots
+lifecycleScope.launch {
+    val views = listOf(view1, view2, view3, view4)
+    val screenshots = mutableListOf<Bitmap>()
+
+    // Capture all views
+    views.forEach { view ->
+        val bitmap = ScreenshotBuilder(this@MainActivity)
+            .view(view)
+            .captureBitmapAsync()
+
+        // Resize each screenshot
+        val resized = ScreenshotUtils.resize(bitmap, 800, 600)
+        screenshots.add(resized)
+
+        bitmap.recycle()  // Free original
+    }
+
+    // Create a grid (2x2)
+    val row1 = ScreenshotUtils.combineHorizontally(
+        screenshots.subList(0, 2),
+        spacing = 10
+    )
+    val row2 = ScreenshotUtils.combineHorizontally(
+        screenshots.subList(2, 4),
+        spacing = 10
+    )
+
+    val grid = row1?.let { r1 ->
+        row2?.let { r2 ->
+            ScreenshotUtils.combineVertically(listOf(r1, r2), spacing = 10)
+        }
+    }
+
+    // Save grid
+    grid?.let {
+        // Save the grid image
+        // ... save logic
+
+        // Cleanup
+        screenshots.forEach { it.recycle() }
+        row1.recycle()
+        row2.recycle()
+        grid.recycle()
+    }
+}
+```
+
+### API Reference - ScreenshotUtils
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `resize(bitmap, maxWidth, maxHeight, maintainAspectRatio)` | Resize bitmap to fit dimensions | `Bitmap` |
+| `crop(bitmap, x, y, width, height)` | Crop bitmap to specific area | `Bitmap` |
+| `rotate(bitmap, degrees)` | Rotate bitmap by degrees | `Bitmap` |
+| `addWatermark(bitmap, text, textSize, alpha, x, y)` | Add text watermark to bitmap | `Bitmap` |
+| `combineVertically(bitmaps, spacing)` | Stitch bitmaps top to bottom | `Bitmap?` |
+| `combineHorizontally(bitmaps, spacing)` | Stitch bitmaps left to right | `Bitmap?` |
+| `compareBitmaps(bitmap1, bitmap2, sampleSize)` | Compare similarity (0.0-1.0) | `Float` |
+| `createShareIntent(context, file, authority, title)` | Create share intent for file | `Intent?` |
+| `getReadableFileSize(file)` | Get file size as string | `String` |
+| `getBitmapMemorySize(bitmap)` | Calculate bitmap memory usage | `Long` |
+
+**Note**: All transformation methods create new bitmaps and don't modify the original. Remember to recycle bitmaps when done to free memory.
 
 ## 📋 Requirements
 
