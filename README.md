@@ -978,7 +978,7 @@ lifecycleScope.launch {
 
 ## 📱 Sample App
 
-Check the `/app` module for a complete sample application with examples of:
+Check the `/sample` module for a complete sample application with examples of:
 
 **Traditional XML Layout (MainActivity)**:
 - Basic view capture
@@ -999,7 +999,7 @@ Check the `/app` module for a complete sample application with examples of:
 
 Run the sample:
 ```bash
-./gradlew :app:installDebug
+./gradlew :sample:installDebug
 ```
 
 ## 🤝 Contributing
