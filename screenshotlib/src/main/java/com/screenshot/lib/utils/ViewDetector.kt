@@ -16,8 +16,9 @@ import android.widget.VideoView
 object ViewDetector {
 
     // Cache for view detection results
-    // Map of Activity hashCode to (detected View, timestamp)
-    private val viewCache = mutableMapOf<Int, Pair<View, Long>>()
+    // Map of Activity hashCode to (detected View WeakReference, timestamp)
+    // Using WeakReference to prevent memory leaks
+    private val viewCache = mutableMapOf<Int, Pair<java.lang.ref.WeakReference<View>, Long>>()
     private const val CACHE_TTL_MS = 500L // Cache valid for 500ms
 
     // Maximum traversal depth to prevent excessive recursion
@@ -45,11 +46,13 @@ object ViewDetector {
 
         // Check cache if enabled
         if (useCache) {
-            viewCache[activityHash]?.let { (cachedView, timestamp) ->
+            viewCache[activityHash]?.let { (cachedViewRef, timestamp) ->
                 if (currentTime - timestamp < CACHE_TTL_MS) {
-                    // Cache hit - verify view is still valid
-                    if (ViewValidator.isViewVisible(cachedView)) {
-                        return cachedView
+                    // Cache hit - verify view is still valid and not garbage collected
+                    cachedViewRef.get()?.let { cachedView ->
+                        if (ViewValidator.isViewVisible(cachedView)) {
+                            return cachedView
+                        }
                     }
                 }
             }
@@ -59,9 +62,9 @@ object ViewDetector {
         val rootView = activity.window.decorView
         val detectedView = detectBestView(rootView)
 
-        // Update cache
+        // Update cache using WeakReference
         if (useCache && detectedView != rootView) {
-            viewCache[activityHash] = Pair(detectedView, currentTime)
+            viewCache[activityHash] = Pair(java.lang.ref.WeakReference(detectedView), currentTime)
 
             // Clean up old cache entries
             cleanupCache(currentTime)

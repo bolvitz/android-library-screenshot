@@ -263,7 +263,6 @@ task verifyPublishConfig {
             println "❌ Publishing configuration has errors:"
             errors.each { println "   - ${it}" }
             println ""
-            println "See PUBLISHING_GUIDE.md for setup instructions"
             println "TIP: Use the NEW Maven Central Portal at https://central.sonatype.com/"
             throw new GradleException("Publishing configuration incomplete")
         }
