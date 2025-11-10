@@ -1,0 +1,86 @@
+# Gradle Properties Template for Maven Central Publishing
+#
+# IMPORTANT: Copy this file to ~/.gradle/gradle.properties (NOT in your project)
+# This keeps your credentials secure and out of version control
+#
+# Steps:
+# 1. Copy to ~/.gradle/gradle.properties
+# 2. Fill in your actual values
+# 3. Never commit credentials to Git!
+
+# ========================================
+# Maven Central Portal Credentials (NEW 2024!)
+# ========================================
+# Get these from https://central.sonatype.com/
+# NEW Portal (recommended):
+centralUsername=YOUR_PORTAL_USERNAME
+centralPassword=YOUR_PORTAL_PASSWORD
+
+# OR use token (more secure - generate from portal):
+# centralToken=YOUR_GENERATED_TOKEN
+
+# Legacy OSSRH (being phased out):
+# ossrhUsername=YOUR_SONATYPE_USERNAME
+# ossrhPassword=YOUR_SONATYPE_PASSWORD
+
+# ========================================
+# GPG Signing Configuration
+# ========================================
+# Get key ID: gpg --list-secret-keys (use last 8 digits)
+signing.keyId=12345678
+signing.password=YOUR_GPG_PASSWORD
+signing.secretKeyRingFile=/Users/YOUR_USERNAME/.gradle/secring.gpg
+
+# ========================================
+# Library Metadata
+# ========================================
+# Your Maven group ID (use io.github.USERNAME if you don't own a domain)
+GROUP=io.github.yourusername
+
+# Library version (update for each release)
+VERSION_NAME=1.1.0
+
+# Artifact ID (library name in Maven)
+POM_ARTIFACT_ID=screenshot-android
+
+# ========================================
+# Project Information
+# ========================================
+POM_NAME=Android Screenshot Library
+POM_DESCRIPTION=A lightweight, robust Android library for capturing screenshots of any view including ImageView, VideoView, WebView, and custom views
+POM_URL=https://github.com/yourusername/android-library-screenshot
+
+# ========================================
+# Source Control
+# ========================================
+POM_SCM_URL=https://github.com/yourusername/android-library-screenshot
+POM_SCM_CONNECTION=scm:git:git://github.com/yourusername/android-library-screenshot.git
+POM_SCM_DEV_CONNECTION=scm:git:ssh://git@github.com/yourusername/android-library-screenshot.git
+
+# ========================================
+# License
+# ========================================
+POM_LICENCE_NAME=The Apache Software License, Version 2.0
+POM_LICENCE_URL=https://www.apache.org/licenses/LICENSE-2.0.txt
+POM_LICENCE_DIST=repo
+
+# ========================================
+# Developer Information
+# ========================================
+POM_DEVELOPER_ID=yourusername
+POM_DEVELOPER_NAME=Your Name
+POM_DEVELOPER_EMAIL=your.email@example.com
+
+# ========================================
+# Optional: Android Settings
+# ========================================
+# Improve build performance
+org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+org.gradle.parallel=true
+org.gradle.caching=true
+
+# Android specific
+android.useAndroidX=true
+android.enableJetifier=true
+kotlin.code.style=official
+android.nonTransitiveRClass=true

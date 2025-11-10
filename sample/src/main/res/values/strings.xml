@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Screenshot Library Sample</string>
+    <string name="capture_view">Capture This View</string>
+    <string name="capture_imageview">Capture ImageView</string>
+    <string name="capture_webview">Capture WebView</string>
+    <string name="capture_with_config">Capture with Custom Config</string>
+    <string name="capture_bitmap_only">Capture Bitmap Only</string>
+    <string name="open_compose_demo">Open Compose Demo</string>
+    <string name="screenshot_saved">Screenshot saved to: %s</string>
+    <string name="screenshot_error">Error: %s</string>
+    <string name="sample_text">This is a sample view that will be captured as a screenshot!</string>
+</resources>

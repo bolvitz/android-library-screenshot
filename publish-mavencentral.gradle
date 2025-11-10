@@ -1,0 +1,85 @@
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
+
+task androidSourcesJar(type: Jar) {
+    archiveClassifier.set('sources')
+    if (project.plugins.findPlugin("com.android.library")) {
+        from android.sourceSets.main.java.srcDirs
+    } else {
+        from sourceSets.main.java.srcDirs
+    }
+}
+
+task javadocJar(type: Jar, dependsOn: dokkaJavadoc) {
+    archiveClassifier.set('javadoc')
+    from dokkaJavadoc.outputDirectory
+}
+
+artifacts {
+    archives androidSourcesJar
+    archives javadocJar
+}
+
+group = GROUP
+version = VERSION_NAME
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                groupId GROUP
+                artifactId POM_ARTIFACT_ID
+                version VERSION_NAME
+
+                if (project.plugins.findPlugin("com.android.library")) {
+                    from components.release
+                } else {
+                    from components.java
+                }
+
+                artifact(androidSourcesJar)
+                artifact(javadocJar)
+
+                pom {
+                    name = POM_NAME
+                    description = POM_DESCRIPTION
+                    url = POM_URL
+                    licenses {
+                        license {
+                            name = POM_LICENCE_NAME
+                            url = POM_LICENCE_URL
+                            distribution = POM_LICENCE_DIST
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = POM_DEVELOPER_ID
+                            name = POM_DEVELOPER_NAME
+                            email = POM_DEVELOPER_EMAIL
+                        }
+                    }
+                    scm {
+                        connection = POM_SCM_CONNECTION
+                        developerConnection = POM_SCM_DEV_CONNECTION
+                        url = POM_SCM_URL
+                    }
+                }
+            }
+        }
+
+        repositories {
+            maven {
+                name = "mavenCentral"
+                url = uri("https://central.sonatype.com/api/v1/publisher/upload?name=${POM_ARTIFACT_ID}-${VERSION_NAME}&publishingType=AUTOMATIC")
+                credentials {
+                    username = findProperty("centralUsername") ?: ""
+                    password = findProperty("centralPassword") ?: ""
+                }
+            }
+        }
+    }
+}
+
+signing {
+    sign publishing.publications
+}
